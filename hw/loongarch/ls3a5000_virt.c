@@ -27,6 +27,8 @@
 #include "hw/misc/unimp.h"
 #include "hw/loongarch/fw_cfg.h"
 #include "hw/firmware/smbios.h"
+#include "hw/acpi/aml-build.h"
+#include "qapi/qapi-visit-common.h"
 
 #define LOONGSON3_BIOSNAME "loongarch_bios.bin"
 
@@ -136,6 +138,7 @@ void loongarch_machine_done(Notifier *notifier, void *data)
 {
     LoongArchMachineState *lams = container_of(notifier,
                                         LoongArchMachineState, machine_done);
+    loongarch_acpi_setup(lams);
     loongarch_build_smbios(lams);
 }
 
@@ -238,7 +241,8 @@ static void sysbus_mmio_map_loongarch(SysBusDevice *dev, int n, hwaddr addr, Mem
     memory_region_add_subregion(iocsr, addr, dev->mmio[n].memory);
 }
 
-static void ls3a5000_irq_init(MachineState *machine, CPULoongArchState *env[])
+static DeviceState *ls3a5000_irq_init(MachineState *machine,
+                                    CPULoongArchState *env[])
 {
     LoongArchMachineState *lams = LOONGARCH_MACHINE(machine);
     DeviceState *extioi, *pch_pic, *pch_msi;
@@ -285,6 +289,7 @@ static void ls3a5000_irq_init(MachineState *machine, CPULoongArchState *env[])
     for (i = 0; i < 224; i++) {
         sysbus_connect_irq(d, i, lams->pch_irq[i + 32]);
     }
+    return pch_pic;
 }
 
 /* Network support */
@@ -325,6 +330,7 @@ static void ls3a5000_virt_init(MachineState *machine)
     char *filename;
     MemoryRegion *bios = g_new(MemoryRegion, 1);
     ram_addr_t offset = 0;
+    DeviceState *pch_pic;
 
     if (!cpu_model) {
         cpu_model = LOONGARCH_CPU_TYPE_NAME("Loongson-3A5000");
@@ -439,10 +445,10 @@ static void ls3a5000_virt_init(MachineState *machine)
     create_unimplemented_device("ls7a-node3", 0x3EFDFB000274, 0x4);
 
     /* Initialize the IO interrupt subsystem */
-    ls3a5000_irq_init(machine, cpu_states);
+    pch_pic = ls3a5000_irq_init(machine, cpu_states);
 
     /* Init the north bridge */
-    pci_bus = ls7a_init(machine, lams->pch_irq);
+    pci_bus = ls7a_init(machine, pch_pic, lams->pch_irq);
 
     /* Network card */
     network_init(pci_bus);
@@ -455,6 +461,40 @@ static void ls3a5000_virt_init(MachineState *machine)
     LOONGARCH_SIMPLE_MMIO_OPS(FEATURE_REG, "loongarch_feature", 0x8);
     LOONGARCH_SIMPLE_MMIO_OPS(VENDOR_REG, "loongarch_vendor", 0x8);
     LOONGARCH_SIMPLE_MMIO_OPS(CPUNAME_REG, "loongarch_cpuname", 0x8);
+}
+
+bool loongarch_is_acpi_enabled(LoongArchMachineState *lams)
+{
+    if (lams->acpi == ON_OFF_AUTO_OFF) {
+        return false;
+    }
+    return true;
+}
+
+static void loongarch_get_acpi(Object *obj, Visitor *v, const char *name,
+                               void *opaque, Error **errp)
+{
+    LoongArchMachineState *lams = LOONGARCH_MACHINE(obj);
+    OnOffAuto acpi = lams->acpi;
+
+    visit_type_OnOffAuto(v, name, &acpi, errp);
+}
+
+static void loongarch_set_acpi(Object *obj, Visitor *v, const char *name,
+                               void *opaque, Error **errp)
+{
+    LoongArchMachineState *lams = LOONGARCH_MACHINE(obj);
+
+    visit_type_OnOffAuto(v, name, &lams->acpi, errp);
+}
+
+static void loongarch_machine_initfn(Object *obj)
+{
+    LoongArchMachineState *lams = LOONGARCH_MACHINE(obj);
+
+    lams->acpi = ON_OFF_AUTO_AUTO;
+    lams->oem_id = g_strndup(ACPI_BUILD_APPNAME6, 6);
+    lams->oem_table_id = g_strndup(ACPI_BUILD_APPNAME8, 8);
 }
 
 static void loongarch_class_init(ObjectClass *oc, void *data)
@@ -473,6 +513,12 @@ static void loongarch_class_init(ObjectClass *oc, void *data)
     mc->block_default_type = IF_VIRTIO;
     mc->default_boot_order = "c";
     mc->no_cdrom = 1;
+
+    object_class_property_add(oc, "acpi", "OnOffAuto",
+        loongarch_get_acpi, loongarch_set_acpi,
+        NULL, NULL);
+    object_class_property_set_description(oc, "acpi",
+        "Enable ACPI");
 }
 
 static const TypeInfo loongarch_machine_types[] = {
@@ -480,6 +526,7 @@ static const TypeInfo loongarch_machine_types[] = {
         .name           = TYPE_LOONGARCH_MACHINE,
         .parent         = TYPE_MACHINE,
         .instance_size  = sizeof(LoongArchMachineState),
+        .instance_init = loongarch_machine_initfn,
         .class_init     = loongarch_class_init,
     }
 };

@@ -54,6 +54,9 @@ typedef struct LoongArchMachineState {
     gipiState   *gipi;
     qemu_irq    *pch_irq;
     FWCfgState  *fw_cfg;
+    OnOffAuto   acpi;
+    char        *oem_id;
+    char        *oem_table_id;
 } LoongArchMachineState;
 
 #define TYPE_LOONGARCH_MACHINE  MACHINE_TYPE_NAME("loongson7a")
@@ -62,4 +65,6 @@ DECLARE_INSTANCE_CHECKER(LoongArchMachineState, LOONGARCH_MACHINE,
 
 void cpu_loongarch_init_irq(LoongArchCPU *cpu);
 int cpu_init_ipi(LoongArchMachineState *lams, qemu_irq irq, int cpu);
+bool loongarch_is_acpi_enabled(LoongArchMachineState *lams);
+void loongarch_acpi_setup(LoongArchMachineState *lams);
 #endif
