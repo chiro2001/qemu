@@ -43,4 +43,6 @@ typedef struct LoongArchMachineState {
 #define TYPE_LOONGARCH_MACHINE  MACHINE_TYPE_NAME("loongson7a")
 DECLARE_INSTANCE_CHECKER(LoongArchMachineState, LOONGARCH_MACHINE,
                          TYPE_LOONGARCH_MACHINE)
+
+void cpu_loongarch_init_irq(LoongArchCPU *cpu);
 #endif
