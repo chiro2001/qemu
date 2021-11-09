@@ -41,6 +41,7 @@ typedef struct LoongArchMachineState {
     MemoryRegion *system_iocsr;
 
     gipiState   *gipi;
+    qemu_irq    *pch_irq;
 } LoongArchMachineState;
 
 #define TYPE_LOONGARCH_MACHINE  MACHINE_TYPE_NAME("loongson7a")
