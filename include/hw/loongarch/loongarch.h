@@ -33,6 +33,10 @@
 #define VENDOR_REG              0x10
 #define CPUNAME_REG             0x20
 
+#define FW_CFG_ADDR             0x1e020000
+#define LA_BIOS_BASE            0x1c000000
+#define LA_BIOS_SIZE            (4 * 1024 * 1024)
+
 typedef struct LoongArchMachineState {
     /*< private >*/
     MachineState parent_obj;
@@ -42,6 +46,7 @@ typedef struct LoongArchMachineState {
 
     gipiState   *gipi;
     qemu_irq    *pch_irq;
+    FWCfgState  *fw_cfg;
 } LoongArchMachineState;
 
 #define TYPE_LOONGARCH_MACHINE  MACHINE_TYPE_NAME("loongson7a")
