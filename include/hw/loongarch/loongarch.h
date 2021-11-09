@@ -49,6 +49,8 @@ typedef struct LoongArchMachineState {
     AddressSpace *address_space_iocsr;
     MemoryRegion *system_iocsr;
 
+    /* State for other subsystems/APIs: */
+    Notifier machine_done;
     gipiState   *gipi;
     qemu_irq    *pch_irq;
     FWCfgState  *fw_cfg;
