@@ -153,6 +153,7 @@ static void ls3a5000_virt_init(MachineState *machine)
         /* Init CPU internal devices */
         cpu_loongarch_init_irq(cpu);
         cpu_loongarch_clock_init(cpu);
+        cpu_init_ipi(lams, env->irq[IRQ_IPI], i);
         qemu_register_reset(main_cpu_reset, cpu);
     }
 

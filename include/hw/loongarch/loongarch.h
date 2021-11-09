@@ -12,6 +12,7 @@
 #include "qemu-common.h"
 #include "hw/boards.h"
 #include "qemu/queue.h"
+#include "hw/loongarch/gipi.h"
 
 #define LOONGARCH_MAX_VCPUS     4
 #define PM_MMIO_ADDR            0x10080000UL
@@ -38,6 +39,8 @@ typedef struct LoongArchMachineState {
 
     AddressSpace *address_space_iocsr;
     MemoryRegion *system_iocsr;
+
+    gipiState   *gipi;
 } LoongArchMachineState;
 
 #define TYPE_LOONGARCH_MACHINE  MACHINE_TYPE_NAME("loongson7a")
@@ -45,4 +48,5 @@ DECLARE_INSTANCE_CHECKER(LoongArchMachineState, LOONGARCH_MACHINE,
                          TYPE_LOONGARCH_MACHINE)
 
 void cpu_loongarch_init_irq(LoongArchCPU *cpu);
+int cpu_init_ipi(LoongArchMachineState *lams, qemu_irq irq, int cpu);
 #endif

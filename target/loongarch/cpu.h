@@ -152,6 +152,7 @@ extern const char * const fregnames[];
 
 #define N_IRQS      14
 #define IRQ_TIMER   11
+#define IRQ_IPI     12
 
 /*
  * LoongArch cpu has 4 priv level, now only 2 mode used.
