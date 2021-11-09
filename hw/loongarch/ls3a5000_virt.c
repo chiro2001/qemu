@@ -15,6 +15,9 @@
 #include "sysemu/runstate.h"
 #include "sysemu/reset.h"
 #include "hw/loongarch/loongarch.h"
+#include "hw/intc/loongarch_extioi.h"
+#include "hw/intc/loongarch_pch_pic.h"
+#include "hw/intc/loongarch_pch_msi.h"
 #include "hw/pci-host/ls7a.h"
 
 CPULoongArchState *cpu_states[LOONGARCH_MAX_VCPUS];
@@ -102,6 +105,64 @@ static const MemoryRegionOps loongarch_qemu_ops = {
     },
 };
 
+static void sysbus_mmio_map_loongarch(SysBusDevice *dev, int n, hwaddr addr, MemoryRegion *iocsr)
+{
+    assert(n >= 0 && n < dev->num_mmio);
+
+    if (dev->mmio[n].addr == addr) {
+        /* ??? region already mapped here. */
+        return;
+    }
+    if (dev->mmio[n].addr != (hwaddr)-1) {
+        /* Unregister previous mapping. */
+        memory_region_del_subregion(iocsr, dev->mmio[n].memory);
+    }
+    dev->mmio[n].addr = addr;
+    memory_region_add_subregion(iocsr, addr, dev->mmio[n].memory);
+}
+
+static void ls3a5000_irq_init(MachineState *machine, CPULoongArchState *env[])
+{
+    LoongArchMachineState *lams = LOONGARCH_MACHINE(machine);
+    DeviceState *extioi, *pch_pic, *pch_msi;
+    SysBusDevice *d;
+    int cpu, pin, i;
+
+    extioi = qdev_new(TYPE_LOONGARCH_EXTIOI);
+    d = SYS_BUS_DEVICE(extioi);
+    sysbus_realize_and_unref(d, &error_fatal);
+    sysbus_mmio_map_loongarch(d, 0, APIC_BASE, lams->system_iocsr);
+
+    for (i = 0; i < EXTIOI_IRQS; i++) {
+        sysbus_connect_irq(d, i, qdev_get_gpio_in(extioi, i));
+    }
+
+    for (cpu = 0; cpu < machine->smp.cpus; cpu++) {
+        /* cpu_pin[9:2] <= intc_pin[7:0] */
+        for (pin = 0; pin < LS3A_INTC_IP; pin++) {
+            sysbus_connect_irq(d, (EXTIOI_IRQS + cpu * 8 + pin),
+                               env[cpu]->irq[pin + 2]);
+        }
+    }
+
+    pch_pic = qdev_new(TYPE_LOONGARCH_PCH_PIC);
+    d = SYS_BUS_DEVICE(pch_pic);
+    sysbus_realize_and_unref(d, &error_fatal);
+    sysbus_mmio_map(d, 0, LS7A_IOAPIC_REG_BASE);
+
+    for (int i = 0; i < 32; i++) {
+        sysbus_connect_irq(d, i, lams->pch_irq[i]);
+    }
+
+    pch_msi = qdev_new(TYPE_LOONGARCH_PCH_MSI);
+    d = SYS_BUS_DEVICE(pch_msi);
+    sysbus_realize_and_unref(d, &error_fatal);
+    sysbus_mmio_map(d, 0, LS7A_PCH_MSI_ADDR_LOW);
+    for (i = 0; i < 224; i++) {
+        sysbus_connect_irq(d, i, lams->pch_irq[i + 32]);
+    }
+}
+
 static void ls3a5000_virt_init(MachineState *machine)
 {
     const char *cpu_model = machine->cpu_type;
@@ -178,6 +239,9 @@ static void ls3a5000_virt_init(MachineState *machine)
                           "loongarch_pm", PM_MMIO_SIZE);
     memory_region_add_subregion(address_space_mem,
                                 PM_MMIO_ADDR, iomem);
+
+    /* Initialize the IO interrupt subsystem */
+    ls3a5000_irq_init(machine, cpu_states);
 
     LOONGARCH_SIMPLE_MMIO_OPS(FEATURE_REG, "loongarch_feature", 0x8);
     LOONGARCH_SIMPLE_MMIO_OPS(VENDOR_REG, "loongarch_vendor", 0x8);
