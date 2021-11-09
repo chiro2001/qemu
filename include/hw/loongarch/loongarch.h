@@ -14,7 +14,7 @@
 #include "qemu/queue.h"
 #include "hw/loongarch/gipi.h"
 
-#define LOONGARCH_MAX_VCPUS     4
+#define LOONGARCH_MAX_VCPUS     16
 #define PM_MMIO_ADDR            0x10080000UL
 #define PM_MMIO_SIZE            0x100
 #define PM_CNT_MODE             0x10
@@ -41,6 +41,14 @@
 #define INITRD_PAGE_SIZE        (64 * KiB)
 #define INITRD_BASE             0x04000000
 #define COMMAND_LINE_SIZE       4096
+
+#define LOONGARCH_NODE_SHIFT    44
+/* Memory types: */
+#define SYSTEM_RAM              1
+#define SYSTEM_RAM_RESERVED     2
+#define ACPI_TABLE              3
+#define ACPI_NVS                4
+#define SYSTEM_PMEM             5
 
 typedef struct LoongArchMachineState {
     /*< private >*/

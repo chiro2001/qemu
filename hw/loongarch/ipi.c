@@ -122,6 +122,7 @@ static const MemoryRegionOps gipi_ops = {
 
 int cpu_init_ipi(LoongArchMachineState *lams, qemu_irq parent, int cpu)
 {
+    int node_id = cpu / 4;
     int core_num = cpu % 4;
     hwaddr addr;
     MemoryRegion *region;
@@ -135,6 +136,7 @@ int cpu_init_ipi(LoongArchMachineState *lams, qemu_irq parent, int cpu)
     lams->gipi->core[cpu].irq = parent;
 
     addr = SMP_GIPI_MAILBOX + core_num * 0x100;
+    addr = addr + ((unsigned long)node_id << LOONGARCH_NODE_SHIFT);
     region = g_new(MemoryRegion, 1);
     sprintf(str, "gipi%d", cpu);
     memory_region_init_io(region, NULL, &gipi_ops,

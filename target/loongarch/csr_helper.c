@@ -242,9 +242,13 @@ uint64_t helper_iocsr_read(CPULoongArchState *env, target_ulong r_addr,
 {
     LoongArchMachineState *lams = LOONGARCH_MACHINE(qdev_get_machine());
     int cpuid = env_cpu(env)->cpu_index;
+    target_ulong node_addr = (target_ulong)(cpuid & 0x3c) << 42;
+    
 
     if (((r_addr & 0xff00) == 0x1000) || ((r_addr & 0xff00) == 0x1800)) {
-        r_addr = r_addr + ((target_ulong)(cpuid & 0x3) << 8);
+        r_addr = r_addr + ((target_ulong)(cpuid & 0x3) << 8) + node_addr;
+    } else if (((r_addr & 0xf000) == 0x1000)) {
+        r_addr = r_addr + node_addr;
     }
 
     if (size == 1) {
@@ -269,6 +273,7 @@ void helper_iocsr_write(CPULoongArchState *env, target_ulong w_addr,
     LoongArchMachineState *lams = LOONGARCH_MACHINE(qdev_get_machine());
     int cpuid = env_cpu(env)->cpu_index;
     int mask, i;
+    target_ulong node_addr;
 
     /*
      * For IPI send, Mail send, ANY send adjust addr and val
@@ -290,10 +295,11 @@ void helper_iocsr_write(CPULoongArchState *env, target_ulong w_addr,
         val = val >> 32;
         mask = (val >> 27) & 0xf;
         size = 1;
+        node_addr = ((target_ulong)(cpuid & 0x3c) << 42);
 
         for (i = 0; i < 4; i++) {
             if (!((mask >> i) & 1)) {
-                address_space_stb(lams->address_space_iocsr, w_addr,
+                address_space_stb(lams->address_space_iocsr, w_addr + node_addr,
                                   val, MEMTXATTRS_UNSPECIFIED, NULL);
             }
             w_addr = w_addr + 1;
@@ -302,8 +308,11 @@ void helper_iocsr_write(CPULoongArchState *env, target_ulong w_addr,
         return;
     }
 
+    node_addr = (target_ulong)(cpuid & 0x3c) << 42;
     if (((w_addr & 0xff00) == 0x1000) || ((w_addr & 0xff00) == 0x1800)) {
-        w_addr = w_addr + ((target_ulong)(cpuid & 0x3) << 8);
+        w_addr = w_addr + ((target_ulong)(cpuid & 0x3) << 8) + node_addr;
+    } else if (((w_addr & 0xf000) == 0x1000)) {
+        w_addr = w_addr + node_addr;
     }
 
     if (size == 1) {
