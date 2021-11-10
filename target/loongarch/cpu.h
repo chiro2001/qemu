@@ -151,6 +151,53 @@ extern const char * const fregnames[];
 #define N_IRQS      14
 #define IRQ_TIMER   11
 
+/*
+ * LoongArch cpu has 4 priv level, now only 2 mode used.
+ * 0 for kernel mode, 3 for user mode.
+ */
+#define LOONGARCH_HFLAG_UM     0x3 /* user mode */
+#define LOONGARCH_HFLAG_KM     0x0 /* kernel mode */
+
+#define LOONGARCH_TLB_MAX      2112 /* 2048 STLB + 64 MTLB */
+
+/*
+ * define the ASID PS E VPPN field of TLB
+ *
+ * PS of stlb come from stlbps.ps
+ * PS of mtlb come from tlbidx.ps
+ */
+FIELD(TLB_MISC, E, 0, 1)
+FIELD(TLB_MISC, ASID, 1, 10)
+FIELD(TLB_MISC, G, 11, 1)
+FIELD(TLB_MISC, PS, 12, 6)
+FIELD(TLB_MISC, VPPN, 18, 35)
+
+/* Corresponding to CSR_TLBELO0/1 */
+FIELD(ENTRY0, V, 0, 1)
+FIELD(ENTRY0, D, 1, 1)
+FIELD(ENTRY0, NR, 2, 1)
+FIELD(ENTRY0, NX, 3, 1)
+FIELD(ENTRY0, MAT, 4, 2)
+FIELD(ENTRY0, PLV, 6, 2)
+FIELD(ENTRY0, RPLV, 8, 1)
+FIELD(ENTRY0, PPN, 9, 36)
+
+FIELD(ENTRY1, V, 0, 1)
+FIELD(ENTRY1, D, 1, 1)
+FIELD(ENTRY1, NR, 2, 1)
+FIELD(ENTRY1, NX, 3, 1)
+FIELD(ENTRY1, MAT, 4, 2)
+FIELD(ENTRY1, PLV, 6, 2)
+FIELD(ENTRY1, RPLV, 8, 1)
+FIELD(ENTRY1, PPN, 9, 36)
+
+struct loongarch_tlb {
+    uint64_t tlb_misc;
+    uint64_t tlb_entry0;
+    uint64_t tlb_entry1;
+};
+typedef struct loongarch_tlb loongarch_tlb;
+
 typedef struct CPULoongArchState CPULoongArchState;
 struct CPULoongArchState {
     uint64_t gpr[32];
@@ -303,6 +350,12 @@ struct CPULoongArchState {
 
     void *irq[N_IRQS];
     QEMUTimer *timer; /* Internal timer */
+
+#ifndef CONFIG_USER_ONLY
+    uint32_t      stlb_size; /* at most : 8 * 256 = 2048 */
+    uint32_t      mtlb_size; /* at most : 64 */
+    loongarch_tlb tlb[LOONGARCH_TLB_MAX];
+#endif
 };
 
 /**
@@ -345,7 +398,11 @@ struct LoongArchCPUClass {
 
 static inline int cpu_mmu_index(CPULoongArchState *env, bool ifetch)
 {
+#ifdef CONFIG_USER_ONLY
     return MMU_USER_IDX;
+#else
+    return FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV);
+#endif
 }
 
 static inline void cpu_get_tb_cpu_state(CPULoongArchState *env,

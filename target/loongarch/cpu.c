@@ -222,6 +222,10 @@ static void loongarch_cpu_disas_set_info(CPUState *s, disassemble_info *info)
 static void loongarch_cpu_realizefn(DeviceState *dev, Error **errp)
 {
     CPUState *cs = CPU(dev);
+#ifndef CONFIG_USER_ONLY
+    LoongArchCPU *cpu = LOONGARCH_CPU(dev);
+    CPULoongArchState *env = &cpu->env;
+#endif
     LoongArchCPUClass *lacc = LOONGARCH_CPU_GET_CLASS(dev);
     Error *local_err = NULL;
 
@@ -230,6 +234,10 @@ static void loongarch_cpu_realizefn(DeviceState *dev, Error **errp)
         error_propagate(errp, local_err);
         return;
     }
+
+#ifndef CONFIG_USER_ONLY
+    loongarch_mmu_init(env);
+#endif
 
     cpu_reset(cs);
     qemu_init_vcpu(cs);
@@ -276,6 +284,21 @@ void loongarch_cpu_dump_state(CPUState *cs, FILE *f, int flags)
         }
     }
 
+#ifndef CONFIG_USER_ONLY
+    qemu_fprintf(f, "EUEN            0x%lx\n", env->CSR_EUEN);
+    qemu_fprintf(f, "ESTAT           0x%lx\n", env->CSR_ESTAT);
+    qemu_fprintf(f, "ERA             0x%lx\n", env->CSR_ERA);
+    qemu_fprintf(f, "CRMD            0x%lx\n", env->CSR_CRMD);
+    qemu_fprintf(f, "PRMD            0x%lx\n", env->CSR_PRMD);
+    qemu_fprintf(f, "BadVAddr        0x%lx\n", env->CSR_BADV);
+    qemu_fprintf(f, "TLB refill ERA  0x%lx\n", env->CSR_TLBRERA);
+    qemu_fprintf(f, "TLB refill BadV 0x%lx\n", env->CSR_TLBRBADV);
+    qemu_fprintf(f, "EENTRY          0x%lx\n", env->CSR_EENTRY);
+    qemu_fprintf(f, "BadInstr        0x%lx\n", env->CSR_BADI);
+    qemu_fprintf(f, "PRCFG1    0x%lx\nPRCFG2     0x%lx\nPRCFG3     0x%lx\n",
+                 env->CSR_PRCFG1, env->CSR_PRCFG3, env->CSR_PRCFG3);
+#endif
+
     /* fpr */
     if (flags & CPU_DUMP_FPU) {
         for (i = 0; i < 32; i++) {
@@ -293,8 +316,20 @@ void loongarch_cpu_dump_state(CPUState *cs, FILE *f, int flags)
 static struct TCGCPUOps loongarch_tcg_ops = {
     .initialize = loongarch_translate_init,
     .synchronize_from_tb = loongarch_cpu_synchronize_from_tb,
+
+#if !defined(CONFIG_USER_ONLY)
+    .tlb_fill = loongarch_cpu_tlb_fill,
+#endif /* !CONFIG_USER_ONLY */
 };
 #endif /* CONFIG_TCG */
+
+#ifndef CONFIG_USER_ONLY
+#include "hw/core/sysemu-cpu-ops.h"
+
+static const struct SysemuCPUOps loongarch_sysemu_ops = {
+    .get_phys_page_debug = loongarch_cpu_get_phys_page_debug,
+};
+#endif
 
 static void loongarch_cpu_class_init(ObjectClass *c, void *data)
 {
@@ -312,6 +347,7 @@ static void loongarch_cpu_class_init(ObjectClass *c, void *data)
     cc->set_pc = loongarch_cpu_set_pc;
 #ifndef CONFIG_USER_ONLY
     dc->vmsd = &vmstate_loongarch_cpu;
+    cc->sysemu_ops = &loongarch_sysemu_ops;
 #endif
     cc->disas_set_info = loongarch_cpu_disas_set_info;
 #ifdef CONFIG_TCG

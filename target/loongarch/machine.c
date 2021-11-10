@@ -8,6 +8,54 @@
 #include "qemu/osdep.h"
 #include "cpu.h"
 #include "migration/cpu.h"
+#include "internals.h"
+
+/* TLB state */
+static int get_tlb(QEMUFile *f, void *pv, size_t size,
+                   const VMStateField *field)
+{
+    loongarch_tlb *v = pv;
+
+    qemu_get_be64s(f, &v->tlb_misc);
+    qemu_get_be64s(f, &v->tlb_entry0);
+    qemu_get_be64s(f, &v->tlb_entry1);
+
+    return 0;
+}
+
+static int put_tlb(QEMUFile *f, void *pv, size_t size,
+                   const VMStateField *field, JSONWriter *vmdesc)
+{
+    loongarch_tlb *v = pv;
+
+    qemu_put_be64s(f, &v->tlb_misc);
+    qemu_put_be64s(f, &v->tlb_entry0);
+    qemu_put_be64s(f, &v->tlb_entry1);
+
+    return 0;
+}
+
+const VMStateInfo vmstate_info_tlb = {
+    .name = "tlb_entry",
+    .get  = get_tlb,
+    .put  = put_tlb,
+};
+
+#define VMSTATE_TLB_ARRAY_V(_f, _s, _n, _v)                     \
+    VMSTATE_ARRAY(_f, _s, _n, _v, vmstate_info_tlb, loongarch_tlb)
+
+#define VMSTATE_TLB_ARRAY(_f, _s, _n)                           \
+    VMSTATE_TLB_ARRAY_V(_f, _s, _n, 0)
+
+const VMStateDescription vmstate_tlb = {
+    .name = "cpu/tlb",
+    .version_id = 0,
+    .minimum_version_id = 0,
+    .fields = (VMStateField[]) {
+        VMSTATE_TLB_ARRAY(env.tlb, LoongArchCPU, LOONGARCH_TLB_MAX),
+        VMSTATE_END_OF_LIST()
+    }
+};
 
 /* LoongArch CPU state */
 
@@ -21,6 +69,10 @@ const VMStateDescription vmstate_loongarch_cpu = {
         VMSTATE_UINTTL(env.pc, LoongArchCPU),
         VMSTATE_UINT64_ARRAY(env.fpr, LoongArchCPU, 32),
         VMSTATE_UINT32(env.fcsr0, LoongArchCPU),
+
+        /* TLB */
+        VMSTATE_UINT32(env.stlb_size, LoongArchCPU),
+        VMSTATE_UINT32(env.mtlb_size, LoongArchCPU),
 
         /* Remaining CSR registers */
         VMSTATE_UINT64(env.CSR_CRMD, LoongArchCPU),
@@ -151,4 +203,8 @@ const VMStateDescription vmstate_loongarch_cpu = {
 
         VMSTATE_END_OF_LIST()
     },
+    .subsections = (const VMStateDescription * []) {
+        &vmstate_tlb,
+        NULL
+    }
 };
