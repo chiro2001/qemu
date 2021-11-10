@@ -82,3 +82,13 @@ target_ulong helper_cpucfg(CPULoongArchState *env, target_ulong rj)
 {
     return env->cpucfg[rj];
 }
+
+#ifndef CONFIG_USER_ONLY
+void helper_check_plv(CPULoongArchState *env)
+{
+    uint64_t plv = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV);
+    if (plv) {
+        do_raise_exception(env, EXCP_IPE, GETPC());
+    }
+}
+#endif /* !CONFIG_USER_ONLY */
