@@ -36,6 +36,19 @@ static const char * const excp_names[EXCP_LAST + 1] = {
     [EXCP_BREAK] = "Break",
     [EXCP_INE] = "Instruction Non-existent",
     [EXCP_FPE] = "Floating Point Exception",
+    [EXCP_IPE] = "Error privilege level access",
+    [EXCP_TLBL] = "TLB load",
+    [EXCP_TLBS] = "TLB store",
+    [EXCP_INST_NOTAVAIL] = "TLB inst not exist",
+    [EXCP_TLBM] = "TLB modify",
+    [EXCP_TLBPE] = "TLB priviledged error",
+    [EXCP_TLBNX] = "TLB execute-inhibit",
+    [EXCP_TLBNR] = "TLB read-inhibit",
+    [EXCP_EXT_INTERRUPT] = "Interrupt",
+    [EXCP_DBP] = "Debug breakpoint",
+    [EXCP_IBE] = "Instruction bus error",
+    [EXCP_DBE] = "Data bus error",
+    [EXCP_DINT] = "Debug interrupt",
 };
 
 const char *loongarch_exception_name(int32_t exception)
