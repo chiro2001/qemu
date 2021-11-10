@@ -91,4 +91,48 @@ void helper_check_plv(CPULoongArchState *env)
         do_raise_exception(env, EXCP_IPE, GETPC());
     }
 }
+
+void helper_ertn(CPULoongArchState *env)
+{
+    uint64_t csr_pplv, csr_pie;
+    if (FIELD_EX64(env->CSR_TLBRERA, CSR_TLBRERA, ISTLBR)) {
+        csr_pplv = FIELD_EX64(env->CSR_TLBRPRMD, CSR_TLBRPRMD, PPLV);
+        csr_pie = FIELD_EX64(env->CSR_TLBRPRMD, CSR_TLBRPRMD, PIE);
+
+        /* Clear Refill flag and set pc */
+        env->CSR_TLBRERA = FIELD_DP64(env->CSR_TLBRERA, CSR_TLBRERA, ISTLBR, 0);
+        env->pc = env->CSR_TLBRERA;
+        if (qemu_loglevel_mask(CPU_LOG_INT)) {
+            qemu_log("%s: TLBRERA 0x%lx\n", __func__, env->CSR_TLBRERA);
+        }
+    } else {
+        csr_pplv = FIELD_EX64(env->CSR_PRMD, CSR_PRMD, PPLV);
+        csr_pie = FIELD_EX64(env->CSR_PRMD, CSR_PRMD, PIE);
+
+        /* set pc*/
+        env->pc = env->CSR_ERA;
+        if (qemu_loglevel_mask(CPU_LOG_INT)) {
+            qemu_log("%s: ERA 0x%lx\n", __func__, env->CSR_ERA);
+        }
+    }
+    env->CSR_CRMD = FIELD_DP64(env->CSR_CRMD, CSR_CRMD, PLV, csr_pplv);
+    env->CSR_CRMD = FIELD_DP64(env->CSR_CRMD, CSR_CRMD, IE, csr_pie);
+
+    env->lladdr = 1;
+}
+
+void helper_idle(CPULoongArchState *env)
+{
+    CPUState *cs = env_cpu(env);
+
+    cs->halted = 1;
+    cpu_reset_interrupt(cs, CPU_INTERRUPT_WAKE);
+    /*
+     * Last instruction in the block, PC was updated before
+     * - no need to recover PC and icount
+     */
+    do_raise_exception(env, EXCP_HLT, 0);
+}
+
+
 #endif /* !CONFIG_USER_ONLY */
