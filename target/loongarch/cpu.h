@@ -148,6 +148,9 @@ FIELD(CPUCFG20, L3IU_SIZE, 24, 7)
 extern const char * const regnames[];
 extern const char * const fregnames[];
 
+#define N_IRQS      14
+#define IRQ_TIMER   11
+
 typedef struct CPULoongArchState CPULoongArchState;
 struct CPULoongArchState {
     uint64_t gpr[32];
@@ -297,6 +300,9 @@ struct CPULoongArchState {
     uint64_t CSR_DBG;
     uint64_t CSR_DERA;
     uint64_t CSR_DESAVE;
+
+    void *irq[N_IRQS];
+    QEMUTimer *timer; /* Internal timer */
 };
 
 /**
@@ -390,4 +396,9 @@ enum {
 #define LOONGARCH_CPU_TYPE_NAME(model) model LOONGARCH_CPU_TYPE_SUFFIX
 #define CPU_RESOLVING_TYPE TYPE_LOONGARCH_CPU
 
+void cpu_loongarch_clock_init(LoongArchCPU *cpu);
+uint64_t cpu_loongarch_get_stable_counter(CPULoongArchState *env);
+uint64_t cpu_loongarch_get_stable_timer_ticks(CPULoongArchState *env);
+void cpu_loongarch_store_stable_timer_config(CPULoongArchState *env,
+                                             uint64_t value);
 #endif /* LOONGARCH_CPU_H */
