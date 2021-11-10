@@ -156,6 +156,8 @@ static void loongarch_3a5000_initfn(Object *obj)
     data = FIELD_DP32(data, CPUCFG20, L3IU_WAYS, 0xf00f);
     data = FIELD_DP32(data, CPUCFG20, L3IU_SETS, 0x60);
     env->cpucfg[20] = data;
+
+    env->CSR_ASID = FIELD_DP64(0, CSR_ASID, ASIDBITS, 0xa);
 }
 
 static void loongarch_cpu_list_entry(gpointer data, gpointer user_data)
@@ -179,11 +181,21 @@ static void loongarch_cpu_reset(DeviceState *dev)
     LoongArchCPU *cpu = LOONGARCH_CPU(cs);
     LoongArchCPUClass *lacc = LOONGARCH_CPU_GET_CLASS(cpu);
     CPULoongArchState *env = &cpu->env;
+    uint64_t data;
 
     lacc->parent_reset(dev);
 
     env->fcsr0_mask = 0x1f1f031f;
     env->fcsr0 = 0x0;
+
+    /* Set direct mapping mode after reset */
+    data = FIELD_DP64(0, CSR_CRMD, PLV, 0);
+    data = FIELD_DP64(data, CSR_CRMD, IE, 0);
+    data = FIELD_DP64(data, CSR_CRMD, DA, 1);
+    data = FIELD_DP64(data, CSR_CRMD, PG, 0);
+    data = FIELD_DP64(data, CSR_CRMD, DATF, 1);
+    data = FIELD_DP64(data, CSR_CRMD, DATM, 1);
+    env->CSR_CRMD = data;
 
     restore_fp_status(env);
     cs->exception_index = EXCP_NONE;
