@@ -290,6 +290,52 @@ static void output_rdrjui12(DisasContext *ctx, arg_fmt_rdrjui12 *a,
            regnames[a->rd], regnames[a->rj], (a->ui12) & 0xfff);
 }
 
+static void output_rdcsr(DisasContext *ctx, arg_fmt_rdcsr *a,
+                         const char *mnemonic)
+{
+    output(ctx, mnemonic, "%s, 0x%x", regnames[a->rd], a->csr);
+}
+
+static void output_rdrjcsr(DisasContext *ctx, arg_fmt_rdrjcsr *a,
+                           const char *mnemonic)
+{
+    output(ctx, mnemonic, "%s, %s, 0x%x",
+           regnames[a->rd], regnames[a->rj], a->csr);
+}
+
+static void output_empty(DisasContext *ctx, arg_fmt_empty *a,
+                         const char *mnemonic)
+{
+    output(ctx, mnemonic, "");
+}
+
+static void output_invtlb(DisasContext *ctx, arg_fmt_invtlb *a,
+                          const char *mnemonic)
+{
+    output(ctx, mnemonic, "%x, %s, %s", a->invop,
+           regnames[a->rj], regnames[a->rk]);
+}
+
+static void output_rdrjlevel(DisasContext *ctx, arg_fmt_rdrjlevel *a,
+                             const char *mnemonic)
+{
+    output(ctx, mnemonic, "%s, %s, 0x%x",
+           regnames[a->rd], regnames[a->rj], a->level);
+}
+
+static void output_rjseq(DisasContext *ctx, arg_fmt_rjseq *a,
+                         const char *mnemonic)
+{
+    output(ctx, mnemonic, "%s, 0x%x", regnames[a->rj], a->seq);
+}
+
+static void output_coprjsi12(DisasContext *ctx, arg_fmt_coprjsi12 *a,
+                             const char *mnemonic)
+{
+    output(ctx, mnemonic, "0x%x, %s, 0x%x",
+           a->cop, regnames[a->rj], a->si12);
+}
+
 #define INSN(insn, type)                                        \
 static bool trans_##insn(DisasContext *ctx, arg_fmt_##type * a) \
 {                                                               \
@@ -602,6 +648,30 @@ INSN(blt,          rjrdoffs16)
 INSN(bge,          rjrdoffs16)
 INSN(bltu,         rjrdoffs16)
 INSN(bgeu,         rjrdoffs16)
+INSN(csrrd,        rdcsr)
+INSN(csrwr,        rdcsr)
+INSN(csrxchg,      rdrjcsr)
+INSN(iocsrrd_b,    rdrj)
+INSN(iocsrrd_h,    rdrj)
+INSN(iocsrrd_w,    rdrj)
+INSN(iocsrrd_d,    rdrj)
+INSN(iocsrwr_b,    rdrj)
+INSN(iocsrwr_h,    rdrj)
+INSN(iocsrwr_w,    rdrj)
+INSN(iocsrwr_d,    rdrj)
+INSN(cacop,        coprjsi12)
+INSN(tlbsrch,      empty)
+INSN(tlbrd,        empty)
+INSN(tlbwr,        empty)
+INSN(tlbfill,      empty)
+INSN(tlbclr,       empty)
+INSN(tlbflush,     empty)
+INSN(invtlb,       invtlb)
+INSN(lddir,        rdrjlevel)
+INSN(ldpte,        rjseq)
+INSN(ertn,         empty)
+INSN(idle,         whint)
+INSN(dbcl,         code)
 
 #define output_fcmp(C, PREFIX, SUBFFIX)                                     \
 {                                                                           \
