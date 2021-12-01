@@ -56,7 +56,7 @@ python = import('python').find_installation()
 
 supported_oses = ['windows', 'freebsd', 'netbsd', 'openbsd', 'darwin', 'sunos', 'linux']
 supported_cpus = ['ppc', 'ppc64', 's390x', 'riscv', 'x86', 'x86_64',
-  'arm', 'aarch64', 'mips', 'mips64', 'sparc', 'sparc64']
+  'arm', 'aarch64', 'mips', 'mips64', 'sparc', 'sparc64', 'loongarch64']
 
 cpu = host_machine.cpu_family()
 
@@ -1814,6 +1814,7 @@ disassemblers = {
   'sh4' : ['CONFIG_SH4_DIS'],
   'sparc' : ['CONFIG_SPARC_DIS'],
   'xtensa' : ['CONFIG_XTENSA_DIS'],
+  'loongarch' : ['CONFIG_LOONGARCH_DIS'],
 }
 if link_language == 'cpp'
   disassemblers += {

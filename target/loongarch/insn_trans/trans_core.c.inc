@@ -1,0 +1,570 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/*
+ * LoongArch translate functions for system mode
+ *
+ * Copyright (c) 2021 Loongson Technology Corporation Limited
+ */
+
+/* Privileged instruction translation */
+
+#include "cpu-csr.h"
+
+#ifdef CONFIG_USER_ONLY
+
+#define GEN_FALSE_TRANS(name)   \
+static bool trans_##name(DisasContext *ctx, arg_##name * a)  \
+{   \
+    return false;   \
+}
+
+GEN_FALSE_TRANS(csrrd)
+GEN_FALSE_TRANS(csrwr)
+GEN_FALSE_TRANS(csrxchg)
+GEN_FALSE_TRANS(iocsrrd_b)
+GEN_FALSE_TRANS(iocsrrd_h)
+GEN_FALSE_TRANS(iocsrrd_w)
+GEN_FALSE_TRANS(iocsrrd_d)
+GEN_FALSE_TRANS(iocsrwr_b)
+GEN_FALSE_TRANS(iocsrwr_h)
+GEN_FALSE_TRANS(iocsrwr_w)
+GEN_FALSE_TRANS(iocsrwr_d)
+GEN_FALSE_TRANS(tlbsrch)
+GEN_FALSE_TRANS(tlbrd)
+GEN_FALSE_TRANS(tlbwr)
+GEN_FALSE_TRANS(tlbfill)
+GEN_FALSE_TRANS(tlbclr)
+GEN_FALSE_TRANS(tlbflush)
+GEN_FALSE_TRANS(invtlb)
+GEN_FALSE_TRANS(cacop)
+GEN_FALSE_TRANS(ldpte)
+GEN_FALSE_TRANS(lddir)
+GEN_FALSE_TRANS(ertn)
+GEN_FALSE_TRANS(dbcl)
+GEN_FALSE_TRANS(idle)
+
+#else
+static bool trans_csrrd(DisasContext *ctx, arg_csrrd *a)
+{
+    TCGv dest = gpr_dst(ctx, a->rd, EXT_NONE);
+
+    gen_helper_check_plv(cpu_env);
+
+#define CASE_CSR_RDQ(csr)                                                     \
+    case LOONGARCH_CSR_ ## csr:                                               \
+    {                                                                         \
+        tcg_gen_ld_tl(dest, cpu_env, offsetof(CPULoongArchState, CSR_##csr)); \
+        break;                                                                \
+    };                                                                        \
+
+    switch (a->csr) {
+    CASE_CSR_RDQ(CRMD)
+    CASE_CSR_RDQ(PRMD)
+    CASE_CSR_RDQ(EUEN)
+    CASE_CSR_RDQ(MISC)
+    CASE_CSR_RDQ(ECFG)
+    CASE_CSR_RDQ(ESTAT)
+    CASE_CSR_RDQ(ERA)
+    CASE_CSR_RDQ(BADV)
+    CASE_CSR_RDQ(BADI)
+    CASE_CSR_RDQ(EENTRY)
+    CASE_CSR_RDQ(TLBIDX)
+    CASE_CSR_RDQ(TLBEHI)
+    CASE_CSR_RDQ(TLBELO0)
+    CASE_CSR_RDQ(TLBELO1)
+    CASE_CSR_RDQ(ASID)
+    CASE_CSR_RDQ(PGDL)
+    CASE_CSR_RDQ(PGDH)
+    CASE_CSR_RDQ(PWCL)
+    CASE_CSR_RDQ(PWCH)
+    CASE_CSR_RDQ(STLBPS)
+    CASE_CSR_RDQ(RVACFG)
+    CASE_CSR_RDQ(PRCFG1)
+    CASE_CSR_RDQ(PRCFG2)
+    CASE_CSR_RDQ(PRCFG3)
+    CASE_CSR_RDQ(SAVE0)
+    CASE_CSR_RDQ(SAVE1)
+    CASE_CSR_RDQ(SAVE2)
+    CASE_CSR_RDQ(SAVE3)
+    CASE_CSR_RDQ(SAVE4)
+    CASE_CSR_RDQ(SAVE5)
+    CASE_CSR_RDQ(SAVE6)
+    CASE_CSR_RDQ(SAVE7)
+    CASE_CSR_RDQ(TMID)
+    CASE_CSR_RDQ(TCFG)
+    CASE_CSR_RDQ(CNTC)
+    CASE_CSR_RDQ(TINTCLR)
+    CASE_CSR_RDQ(LLBCTL)
+    CASE_CSR_RDQ(IMPCTL1)
+    CASE_CSR_RDQ(IMPCTL2)
+    CASE_CSR_RDQ(TLBRENTRY)
+    CASE_CSR_RDQ(TLBRBADV)
+    CASE_CSR_RDQ(TLBRERA)
+    CASE_CSR_RDQ(TLBRSAVE)
+    CASE_CSR_RDQ(TLBRELO0)
+    CASE_CSR_RDQ(TLBRELO1)
+    CASE_CSR_RDQ(TLBREHI)
+    CASE_CSR_RDQ(TLBRPRMD)
+    CASE_CSR_RDQ(MERRCTL)
+    CASE_CSR_RDQ(MERRINFO)
+    CASE_CSR_RDQ(MERRINFO1)
+    CASE_CSR_RDQ(MERRENT)
+    CASE_CSR_RDQ(MERRERA)
+    CASE_CSR_RDQ(MERRSAVE)
+    CASE_CSR_RDQ(CTAG)
+    CASE_CSR_RDQ(DMWIN0)
+    CASE_CSR_RDQ(DMWIN1)
+    CASE_CSR_RDQ(DMWIN2)
+    CASE_CSR_RDQ(DMWIN3)
+    CASE_CSR_RDQ(PERFCTRL0)
+    CASE_CSR_RDQ(PERFCNTR0)
+    CASE_CSR_RDQ(PERFCTRL1)
+    CASE_CSR_RDQ(PERFCNTR1)
+    CASE_CSR_RDQ(PERFCTRL2)
+    CASE_CSR_RDQ(PERFCNTR2)
+    CASE_CSR_RDQ(PERFCTRL3)
+    CASE_CSR_RDQ(PERFCNTR3)
+    /* Debug */
+    CASE_CSR_RDQ(MWPC)
+    CASE_CSR_RDQ(MWPS)
+    CASE_CSR_RDQ(DB0ADDR)
+    CASE_CSR_RDQ(DB0MASK)
+    CASE_CSR_RDQ(DB0CTL)
+    CASE_CSR_RDQ(DB0ASID)
+    CASE_CSR_RDQ(DB1ADDR)
+    CASE_CSR_RDQ(DB1MASK)
+    CASE_CSR_RDQ(DB1CTL)
+    CASE_CSR_RDQ(DB1ASID)
+    CASE_CSR_RDQ(DB2ADDR)
+    CASE_CSR_RDQ(DB2MASK)
+    CASE_CSR_RDQ(DB2CTL)
+    CASE_CSR_RDQ(DB2ASID)
+    CASE_CSR_RDQ(DB3ADDR)
+    CASE_CSR_RDQ(DB3MASK)
+    CASE_CSR_RDQ(DB3CTL)
+    CASE_CSR_RDQ(DB3ASID)
+    CASE_CSR_RDQ(FWPC)
+    CASE_CSR_RDQ(FWPS)
+    CASE_CSR_RDQ(IB0ADDR)
+    CASE_CSR_RDQ(IB0MASK)
+    CASE_CSR_RDQ(IB0CTL)
+    CASE_CSR_RDQ(IB0ASID)
+    CASE_CSR_RDQ(IB1ADDR)
+    CASE_CSR_RDQ(IB1MASK)
+    CASE_CSR_RDQ(IB1CTL)
+    CASE_CSR_RDQ(IB1ASID)
+    CASE_CSR_RDQ(IB2ADDR)
+    CASE_CSR_RDQ(IB2MASK)
+    CASE_CSR_RDQ(IB2CTL)
+    CASE_CSR_RDQ(IB2ASID)
+    CASE_CSR_RDQ(IB3ADDR)
+    CASE_CSR_RDQ(IB3MASK)
+    CASE_CSR_RDQ(IB3CTL)
+    CASE_CSR_RDQ(IB3ASID)
+    CASE_CSR_RDQ(IB4ADDR)
+    CASE_CSR_RDQ(IB4MASK)
+    CASE_CSR_RDQ(IB4CTL)
+    CASE_CSR_RDQ(IB4ASID)
+    CASE_CSR_RDQ(IB5ADDR)
+    CASE_CSR_RDQ(IB5MASK)
+    CASE_CSR_RDQ(IB5CTL)
+    CASE_CSR_RDQ(IB5ASID)
+    CASE_CSR_RDQ(IB6ADDR)
+    CASE_CSR_RDQ(IB6MASK)
+    CASE_CSR_RDQ(IB6CTL)
+    CASE_CSR_RDQ(IB6ASID)
+    CASE_CSR_RDQ(IB7ADDR)
+    CASE_CSR_RDQ(IB7MASK)
+    CASE_CSR_RDQ(IB7CTL)
+    CASE_CSR_RDQ(IB7ASID)
+    CASE_CSR_RDQ(DBG)
+    CASE_CSR_RDQ(DERA)
+    CASE_CSR_RDQ(DESAVE)
+    case LOONGARCH_CSR_PGD:
+    case LOONGARCH_CSR_CPUID:
+    case LOONGARCH_CSR_TVAL:
+        gen_helper_csr_rdq(dest, cpu_env, tcg_constant_i64(a->csr));
+        break;
+    default:
+        assert(0);
+    }
+#undef CASE_CSR_RDQ
+
+    return true;
+}
+
+static bool trans_csrwr(DisasContext *ctx, arg_csrwr *a)
+{
+    TCGv dest = gpr_dst(ctx, a->rd, EXT_NONE);
+    TCGv src1 = gpr_src(ctx, a->rd, EXT_NONE);
+    TCGv temp = tcg_temp_new();
+
+    gen_helper_check_plv(cpu_env);
+#define CASE_CSR_WRQ(csr)                                                     \
+    case LOONGARCH_CSR_ ## csr:                                               \
+    {                                                                         \
+        tcg_gen_ld_tl(temp, cpu_env, offsetof(CPULoongArchState, CSR_##csr)); \
+        tcg_gen_st_tl(src1, cpu_env, offsetof(CPULoongArchState, CSR_##csr)); \
+        tcg_gen_mov_tl(dest, temp);                                           \
+        tcg_temp_free(temp);                                                  \
+        break;                                                                \
+    };                                                                        \
+
+    switch (a->csr) {
+    case LOONGARCH_CSR_CRMD:
+        tcg_gen_ld_tl(temp, cpu_env, offsetof(CPULoongArchState, CSR_CRMD));
+        tcg_gen_st_tl(src1, cpu_env, offsetof(CPULoongArchState, CSR_CRMD));
+        tcg_gen_mov_tl(dest, temp);
+        tcg_gen_movi_tl(cpu_pc, ctx->base.pc_next + 4);
+        tcg_temp_free(temp);
+        ctx->base.is_jmp = DISAS_EXIT;
+        break;
+    case LOONGARCH_CSR_EUEN:
+        tcg_gen_ld_tl(temp, cpu_env, offsetof(CPULoongArchState, CSR_EUEN));
+        tcg_gen_st_tl(src1, cpu_env, offsetof(CPULoongArchState, CSR_EUEN));
+        tcg_gen_mov_tl(dest, temp);
+        tcg_gen_movi_tl(cpu_pc, ctx->base.pc_next + 4);
+        tcg_temp_free(temp);
+        ctx->base.is_jmp = DISAS_EXIT;
+        break;
+    CASE_CSR_WRQ(PRMD)
+    CASE_CSR_WRQ(MISC)
+    CASE_CSR_WRQ(ECFG)
+    CASE_CSR_WRQ(ESTAT)
+    CASE_CSR_WRQ(ERA)
+    CASE_CSR_WRQ(BADV)
+    CASE_CSR_WRQ(BADI)
+    CASE_CSR_WRQ(EENTRY)
+    CASE_CSR_WRQ(TLBIDX)
+    CASE_CSR_WRQ(TLBEHI)
+    CASE_CSR_WRQ(TLBELO0)
+    CASE_CSR_WRQ(TLBELO1)
+    CASE_CSR_WRQ(PGDL)
+    CASE_CSR_WRQ(PGDH)
+    CASE_CSR_WRQ(PWCL)
+    CASE_CSR_WRQ(PWCH)
+    CASE_CSR_WRQ(STLBPS)
+    CASE_CSR_WRQ(RVACFG)
+    CASE_CSR_WRQ(PRCFG1)
+    CASE_CSR_WRQ(PRCFG2)
+    CASE_CSR_WRQ(PRCFG3)
+    CASE_CSR_WRQ(SAVE0)
+    CASE_CSR_WRQ(SAVE1)
+    CASE_CSR_WRQ(SAVE2)
+    CASE_CSR_WRQ(SAVE3)
+    CASE_CSR_WRQ(SAVE4)
+    CASE_CSR_WRQ(SAVE5)
+    CASE_CSR_WRQ(SAVE6)
+    CASE_CSR_WRQ(SAVE7)
+    CASE_CSR_WRQ(TMID)
+    CASE_CSR_WRQ(TVAL)
+    CASE_CSR_WRQ(CNTC)
+    CASE_CSR_WRQ(LLBCTL)
+    CASE_CSR_WRQ(IMPCTL1)
+    CASE_CSR_WRQ(IMPCTL2)
+    CASE_CSR_WRQ(TLBRENTRY)
+    CASE_CSR_WRQ(TLBRBADV)
+    CASE_CSR_WRQ(TLBRERA)
+    CASE_CSR_WRQ(TLBRSAVE)
+    CASE_CSR_WRQ(TLBRELO0)
+    CASE_CSR_WRQ(TLBRELO1)
+    CASE_CSR_WRQ(TLBREHI)
+    CASE_CSR_WRQ(TLBRPRMD)
+    CASE_CSR_WRQ(MERRCTL)
+    CASE_CSR_WRQ(MERRINFO)
+    CASE_CSR_WRQ(MERRINFO1)
+    CASE_CSR_WRQ(MERRENT)
+    CASE_CSR_WRQ(MERRERA)
+    CASE_CSR_WRQ(MERRSAVE)
+    CASE_CSR_WRQ(CTAG)
+    CASE_CSR_WRQ(DMWIN0)
+    CASE_CSR_WRQ(DMWIN1)
+    CASE_CSR_WRQ(DMWIN2)
+    CASE_CSR_WRQ(DMWIN3)
+    CASE_CSR_WRQ(PERFCTRL0)
+    CASE_CSR_WRQ(PERFCNTR0)
+    CASE_CSR_WRQ(PERFCTRL1)
+    CASE_CSR_WRQ(PERFCNTR1)
+    CASE_CSR_WRQ(PERFCTRL2)
+    CASE_CSR_WRQ(PERFCNTR2)
+    CASE_CSR_WRQ(PERFCTRL3)
+    CASE_CSR_WRQ(PERFCNTR3)
+    /* Debug */
+    CASE_CSR_WRQ(MWPC)
+    CASE_CSR_WRQ(MWPS)
+    CASE_CSR_WRQ(DB0ADDR)
+    CASE_CSR_WRQ(DB0MASK)
+    CASE_CSR_WRQ(DB0CTL)
+    CASE_CSR_WRQ(DB0ASID)
+    CASE_CSR_WRQ(DB1ADDR)
+    CASE_CSR_WRQ(DB1MASK)
+    CASE_CSR_WRQ(DB1CTL)
+    CASE_CSR_WRQ(DB1ASID)
+    CASE_CSR_WRQ(DB2ADDR)
+    CASE_CSR_WRQ(DB2MASK)
+    CASE_CSR_WRQ(DB2CTL)
+    CASE_CSR_WRQ(DB2ASID)
+    CASE_CSR_WRQ(DB3ADDR)
+    CASE_CSR_WRQ(DB3MASK)
+    CASE_CSR_WRQ(DB3CTL)
+    CASE_CSR_WRQ(DB3ASID)
+    CASE_CSR_WRQ(FWPC)
+    CASE_CSR_WRQ(FWPS)
+    CASE_CSR_WRQ(IB0ADDR)
+    CASE_CSR_WRQ(IB0MASK)
+    CASE_CSR_WRQ(IB0CTL)
+    CASE_CSR_WRQ(IB0ASID)
+    CASE_CSR_WRQ(IB1ADDR)
+    CASE_CSR_WRQ(IB1MASK)
+    CASE_CSR_WRQ(IB1CTL)
+    CASE_CSR_WRQ(IB1ASID)
+    CASE_CSR_WRQ(IB2ADDR)
+    CASE_CSR_WRQ(IB2MASK)
+    CASE_CSR_WRQ(IB2CTL)
+    CASE_CSR_WRQ(IB2ASID)
+    CASE_CSR_WRQ(IB3ADDR)
+    CASE_CSR_WRQ(IB3MASK)
+    CASE_CSR_WRQ(IB3CTL)
+    CASE_CSR_WRQ(IB3ASID)
+    CASE_CSR_WRQ(IB4ADDR)
+    CASE_CSR_WRQ(IB4MASK)
+    CASE_CSR_WRQ(IB4CTL)
+    CASE_CSR_WRQ(IB4ASID)
+    CASE_CSR_WRQ(IB5ADDR)
+    CASE_CSR_WRQ(IB5MASK)
+    CASE_CSR_WRQ(IB5CTL)
+    CASE_CSR_WRQ(IB5ASID)
+    CASE_CSR_WRQ(IB6ADDR)
+    CASE_CSR_WRQ(IB6MASK)
+    CASE_CSR_WRQ(IB6CTL)
+    CASE_CSR_WRQ(IB6ASID)
+    CASE_CSR_WRQ(IB7ADDR)
+    CASE_CSR_WRQ(IB7MASK)
+    CASE_CSR_WRQ(IB7CTL)
+    CASE_CSR_WRQ(IB7ASID)
+    CASE_CSR_WRQ(DBG)
+    CASE_CSR_WRQ(DERA)
+    CASE_CSR_WRQ(DESAVE)
+    case LOONGARCH_CSR_ASID:
+    case LOONGARCH_CSR_TCFG:
+    case LOONGARCH_CSR_TINTCLR:
+        gen_helper_csr_wrq(dest, cpu_env, src1, tcg_constant_i64(a->csr));
+        break;
+    default:
+        assert(0);
+    }
+#undef CASE_CSR_WRQ
+
+    return true;
+}
+
+static bool trans_csrxchg(DisasContext *ctx, arg_csrxchg *a)
+{
+    TCGv dest = gpr_dst(ctx, a->rd, EXT_NONE);
+    TCGv src1 = gpr_src(ctx, a->rd, EXT_NONE);
+    TCGv src2 = gpr_src(ctx, a->rj, EXT_NONE);
+
+    gen_helper_check_plv(cpu_env);
+    gen_helper_csr_xchgq(dest, cpu_env, src1, src2, tcg_constant_i64(a->csr));
+    return true;
+}
+
+static bool trans_iocsrrd_b(DisasContext *ctx, arg_iocsrrd_b *a)
+{
+    TCGv dest = gpr_dst(ctx, a->rd, EXT_NONE);
+    TCGv src1 = gpr_src(ctx, a->rj, EXT_NONE);
+
+    gen_helper_check_plv(cpu_env);
+    gen_helper_iocsr_read(dest, cpu_env, src1, tcg_constant_i32(1));
+    return true;
+}
+
+static bool trans_iocsrrd_h(DisasContext *ctx, arg_iocsrrd_h *a)
+{
+    TCGv dest = gpr_dst(ctx, a->rd, EXT_NONE);
+    TCGv src1 = gpr_src(ctx, a->rj, EXT_NONE);
+
+    gen_helper_check_plv(cpu_env);
+    gen_helper_iocsr_read(dest, cpu_env, src1, tcg_constant_i32(2));
+    return true;
+}
+
+static bool trans_iocsrrd_w(DisasContext *ctx, arg_iocsrrd_w *a)
+{
+    TCGv dest = gpr_dst(ctx, a->rd, EXT_NONE);
+    TCGv src1 = gpr_src(ctx, a->rj, EXT_NONE);
+
+    gen_helper_check_plv(cpu_env);
+    gen_helper_iocsr_read(dest, cpu_env, src1, tcg_constant_i32(4));
+    return true;
+}
+
+static bool trans_iocsrrd_d(DisasContext *ctx, arg_iocsrrd_d *a)
+{
+    TCGv dest = gpr_dst(ctx, a->rd, EXT_NONE);
+    TCGv src1 = gpr_src(ctx, a->rj, EXT_NONE);
+
+    gen_helper_check_plv(cpu_env);
+    gen_helper_iocsr_read(dest, cpu_env, src1, tcg_constant_i32(8));
+    return true;
+}
+
+static bool trans_iocsrwr_b(DisasContext *ctx, arg_iocsrwr_b *a)
+{
+    TCGv val = gpr_src(ctx, a->rd, EXT_NONE);
+    TCGv addr = gpr_src(ctx, a->rj, EXT_NONE);
+
+    gen_helper_check_plv(cpu_env);
+    gen_helper_iocsr_write(cpu_env, addr, val, tcg_constant_i32(1));
+    return true;
+}
+
+static bool trans_iocsrwr_h(DisasContext *ctx, arg_iocsrwr_h *a)
+{
+    TCGv val = gpr_src(ctx, a->rd, EXT_NONE);
+    TCGv addr = gpr_src(ctx, a->rj, EXT_NONE);
+
+    gen_helper_check_plv(cpu_env);
+    gen_helper_iocsr_write(cpu_env, addr, val, tcg_constant_i32(2));
+    return true;
+}
+
+static bool trans_iocsrwr_w(DisasContext *ctx, arg_iocsrwr_w *a)
+{
+    TCGv val = gpr_src(ctx, a->rd, EXT_NONE);
+    TCGv addr = gpr_src(ctx, a->rj, EXT_NONE);
+
+    gen_helper_check_plv(cpu_env);
+    gen_helper_iocsr_write(cpu_env, addr, val, tcg_constant_i32(4));
+    return true;
+}
+
+static bool trans_iocsrwr_d(DisasContext *ctx, arg_iocsrwr_d *a)
+{
+    TCGv val = gpr_src(ctx, a->rd, EXT_NONE);
+    TCGv addr = gpr_src(ctx, a->rj, EXT_NONE);
+
+    gen_helper_check_plv(cpu_env);
+    gen_helper_iocsr_write(cpu_env, addr, val, tcg_constant_i32(8));
+    return true;
+}
+
+static bool trans_cacop(DisasContext *ctx, arg_cacop *a)
+{
+    /* Treat the cacop as a nop */
+    gen_helper_check_plv(cpu_env);
+    return true;
+}
+
+static bool trans_tlbsrch(DisasContext *ctx, arg_tlbsrch *a)
+{
+    gen_helper_check_plv(cpu_env);
+    gen_helper_tlbsrch(cpu_env);
+    return true;
+}
+
+static bool trans_tlbrd(DisasContext *ctx, arg_tlbrd *a)
+{
+    gen_helper_check_plv(cpu_env);
+    gen_helper_tlbrd(cpu_env);
+    return true;
+}
+
+static bool trans_tlbwr(DisasContext *ctx, arg_tlbwr *a)
+{
+    gen_helper_check_plv(cpu_env);
+    gen_helper_tlbwr(cpu_env);
+    tcg_gen_movi_tl(cpu_pc, ctx->base.pc_next + 4);
+    ctx->base.is_jmp = DISAS_EXIT;
+    return true;
+}
+
+static bool trans_tlbfill(DisasContext *ctx, arg_tlbfill *a)
+{
+    gen_helper_check_plv(cpu_env);
+    gen_helper_tlbfill(cpu_env);
+    tcg_gen_movi_tl(cpu_pc, ctx->base.pc_next + 4);
+    ctx->base.is_jmp = DISAS_EXIT;
+    return true;
+}
+
+static bool trans_tlbclr(DisasContext *ctx, arg_tlbclr *a)
+{
+    gen_helper_check_plv(cpu_env);
+    gen_helper_tlbclr(cpu_env);
+    tcg_gen_movi_tl(cpu_pc, ctx->base.pc_next + 4);
+    ctx->base.is_jmp = DISAS_EXIT;
+    return true;
+}
+
+static bool trans_tlbflush(DisasContext *ctx, arg_tlbflush *a)
+{
+    gen_helper_check_plv(cpu_env);
+    gen_helper_tlbflush(cpu_env);
+    tcg_gen_movi_tl(cpu_pc, ctx->base.pc_next + 4);
+    ctx->base.is_jmp = DISAS_EXIT;
+    return true;
+}
+
+static bool trans_invtlb(DisasContext *ctx, arg_invtlb *a)
+{
+    TCGv rj = gpr_src(ctx, a->rj, EXT_NONE);
+    TCGv rk = gpr_src(ctx, a->rk, EXT_NONE);
+    TCGv op = tcg_constant_tl(a->invop);
+
+    gen_helper_check_plv(cpu_env);
+    gen_helper_invtlb(cpu_env, rj, rk, op);
+    tcg_gen_movi_tl(cpu_pc, ctx->base.pc_next + 4);
+    ctx->base.is_jmp = DISAS_EXIT;
+    return true;
+}
+
+static bool trans_ldpte(DisasContext *ctx, arg_ldpte *a)
+{
+    TCGv_i32 mem_idx = tcg_constant_i32(ctx->mem_idx);
+    TCGv src1 = gpr_src(ctx, a->rj, EXT_NONE);
+
+    gen_helper_check_plv(cpu_env);
+    gen_helper_ldpte(cpu_env, src1, tcg_constant_tl(a->seq), mem_idx);
+    return true;
+}
+
+static bool trans_lddir(DisasContext *ctx, arg_lddir *a)
+{
+    TCGv_i32 mem_idx = tcg_constant_i32(ctx->mem_idx);
+    TCGv src = gpr_src(ctx, a->rj, EXT_NONE);
+    TCGv dest = gpr_dst(ctx, a->rd, EXT_NONE);
+
+    gen_helper_check_plv(cpu_env);
+    gen_helper_lddir(dest, cpu_env, src, tcg_constant_tl(a->level), mem_idx);
+    return true;
+}
+
+static bool trans_ertn(DisasContext *ctx, arg_ertn *a)
+{
+    gen_helper_check_plv(cpu_env);
+    gen_helper_ertn(cpu_env);
+    ctx->base.is_jmp = DISAS_EXIT;
+    return true;
+}
+
+static bool trans_dbcl(DisasContext *ctx, arg_dbcl *a)
+{
+    /*
+     * XXX: not clear which exception should be raised
+     *      when in debug mode...
+     */
+    gen_helper_check_plv(cpu_env);
+    generate_exception(ctx, EXCP_DBP);
+    return true;
+}
+
+static bool trans_idle(DisasContext *ctx, arg_idle *a)
+{
+    gen_helper_check_plv(cpu_env);
+
+    tcg_gen_movi_tl(cpu_pc, ctx->base.pc_next + 4);
+    gen_helper_idle(cpu_env);
+    ctx->base.is_jmp = DISAS_NORETURN;
+    return true;
+}
+#endif
