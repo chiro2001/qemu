@@ -52,10 +52,21 @@ of other UNIX targets. The simple steps to build QEMU are:
 
 .. code-block:: shell
 
+  # Chiro: some files need convert:
+  find ~/gits/qemu -name "*" -exec dos2unix \;
   mkdir build
   cd build
-  ../configure
-  make
+  # Chiro: tested loongarch64
+  ../configure --enable-debug --target-list=loongarch64-linux-user
+  make -j8
+  # Chiro: some cases:
+  vim Makefile
+  # Line 132: add $(SRC_PATH) as python script prefix
+  # $(SRC_PATH)/scripts/meson-buildoptions.py
+  # Re-generate the build files manually
+  ./config.status
+  # remake (lol)
+  make -j8
 
 Additional information can also be found online via the QEMU website:
 
